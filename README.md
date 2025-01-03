@@ -1,1 +1,1 @@
-echo "# test-jenkins-pipeline" >> README.md
+ test-jenkins-pipeline
