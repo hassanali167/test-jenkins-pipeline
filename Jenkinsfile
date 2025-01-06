@@ -23,6 +23,9 @@ pipeline {
             steps {
                 script {
                     echo 'Building new Docker image...'
+                    docker stop ${CONTAINER_NAME} || true
+                    docker rmi --force ${CONTAINER_NAME} || true
+                    
                     sh "docker build -t ${IMAGE_NAME}:latest ."
                 }
             }
@@ -33,8 +36,7 @@ pipeline {
                     echo 'Deploying new Docker container...'
                     sh """
                         # Stop and remove the old container if it exists
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rmi --force ${CONTAINER_NAME} || true
+                        
                         
                         # Run the new image in a container
                         docker run -d --name ${CONTAINER_NAME}  ${IMAGE_NAME}:latest
