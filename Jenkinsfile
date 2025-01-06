@@ -24,7 +24,7 @@ pipeline {
                 script {
                     echo 'Deleting existing Docker image (if it exists)...'
                     sh """
-                        docker image rm ${IMAGE_NAME}:latest || true
+                        docker image rmi --force ${IMAGE_NAME}:latest || true
                     """
                 }
             }
@@ -55,7 +55,7 @@ pipeline {
                 script {
                     echo 'Deploying the new Docker container...'
                     sh """
-                        docker run -d --name ${CONTAINER_NAME} -p 80:80 ${IMAGE_NAME}:latest
+                        docker run -d --name ${CONTAINER_NAME}  ${IMAGE_NAME}:latest
                     """
                 }
             }
