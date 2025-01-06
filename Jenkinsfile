@@ -2,44 +2,60 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'local-python-app'   // Docker image name
-        CONTAINER_NAME = 'python-app-container'  // Docker container name
+        IMAGE_NAME = 'local-python-app'     // Name of the Docker image
+        CONTAINER_NAME = 'python-app-container'  // Name of the Docker container
     }
 
     triggers {
-        pollSCM('* * * * *')  // Poll the Git repository every minute for changes (set appropriate frequency based on your needs)
+        pollSCM('H/5 * * * *')  // Poll GitHub every 5 minutes for changes
     }
 
     stages {
-        stage('Checkout') {
+        stage('Check for Changes') {
             steps {
                 script {
-                    echo 'Pulling latest code from the repository...'
-                    checkout scm  // Pull code from GitHub
+                    echo 'Checking for changes in the repository...'
+                    checkout scm  // Pull the latest code from the repository
                 }
             }
         }
-        stage('Build Docker Image') {
+        stage('Delete Existing Docker Image') {
+            steps {
+                script {
+                    echo 'Deleting existing Docker image (if it exists)...'
+                    sh """
+                        docker image rm ${IMAGE_NAME}:latest || true
+                    """
+                }
+            }
+        }
+        stage('Build New Docker Image') {
             steps {
                 script {
                     echo 'Building new Docker image...'
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rmi --force ${CONTAINER_NAME} || true
-                    
-                    sh "docker build -t ${IMAGE_NAME}:latest ."
+                    sh """
+                        docker build -t ${IMAGE_NAME}:latest .
+                    """
                 }
             }
         }
-        stage('Deploy') {
+        stage('Stop and Remove Existing Container') {
             steps {
                 script {
-                    echo 'Deploying new Docker container...'
+                    echo 'Stopping and removing existing Docker container (if it exists)...'
                     sh """
-                        # Stop and remove the old container if it exists
-                        
-                        
-                        # Run the new image in a container
-                        docker run -d --name ${CONTAINER_NAME}  ${IMAGE_NAME}:latest
+                        docker stop ${CONTAINER_NAME} || true
+                        docker rm ${CONTAINER_NAME} || true
+                    """
+                }
+            }
+        }
+        stage('Deploy New Container') {
+            steps {
+                script {
+                    echo 'Deploying the new Docker container...'
+                    sh """
+                        docker run -d --name ${CONTAINER_NAME} -p 80:80 ${IMAGE_NAME}:latest
                     """
                 }
             }
@@ -48,13 +64,13 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully. New image built and deployed!'
+            echo 'Deployment completed successfully. New image is running!'
         }
         failure {
-            echo 'Pipeline failed. Please check the logs.'
+            echo 'Pipeline failed. Check logs for details.'
         }
         always {
-            cleanWs()  // Clean up workspace after pipeline run
+            echo 'Pipeline run completed.'
         }
     }
 }
